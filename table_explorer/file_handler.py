@@ -29,12 +29,12 @@ def list_files():
     return {"files": files}
 
 
-def find_file(file_name, base_dir):
+def find_file(file_name):
 
-    for root, dirs, files in os.walk(base_dir):
+    for root, dirs, files in os.walk(DATA_DIR):
         if file_name in files:
             return os.path.join(root, file_name)
     raise HTTPException(
         status_code=404,
-        detail=f"File {file_name} not found in {base_dir} or its subdirectories",
+        detail=f"File {file_name} not found in {DATA_DIR} or its subdirectories",
     )
