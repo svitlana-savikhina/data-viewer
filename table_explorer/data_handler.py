@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import saspy
 from fastapi import HTTPException
 
 from table_explorer.file_handler import find_file
@@ -47,14 +46,7 @@ def load_table(file_name, sheet_name=None):
         return pd.read_sas(file_path)
 
     elif file_name.endswith(".xpt"):
-        try:
-            sas = saspy.SASsession()
-            df = sas.sasdata2dataframe(table=file_path)
-            return df
-        except Exception as e:
-            raise HTTPException(
-                status_code=400, detail=f"Error reading XPORT file with saspy: {str(e)}"
-            )
+        return pd.read_sas(file_path, format="xport")
 
     else:
         raise HTTPException(status_code=400, detail="Unsupported file format")
@@ -64,6 +56,17 @@ def sanitize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     df = df.replace([np.inf, -np.inf], None)
     df = df.fillna(value="")
     return df
+
+
+def format_data(df, rows, file_name=None):
+    if file_name and file_name.endswith((".xls", ".xlsx")):
+        df = pd.read_excel(file_name, header=0)
+    else:
+        df = pd.DataFrame(df)
+    return {
+        "columns": list(df.columns),
+        "data": df.head(rows).to_dict(orient="records"),
+    }
 
 
 def preview_file(file_name: str, rows: int = 10, sheet_name=None):
@@ -78,17 +81,7 @@ def preview_file(file_name: str, rows: int = 10, sheet_name=None):
 
     if isinstance(df_or_dict, dict):
         return {
-            "sheets": {
-                sheet: {
-                    "columns": list(df.columns),
-                    "data": df.head(rows).to_dict(orient="records"),
-                }
-                for sheet, df in df_or_dict.items()
-            }
+            "sheets": {sheet: format_data(df, rows) for sheet, df in df_or_dict.items()}
         }
     else:
-        df = df_or_dict
-        return {
-            "columns": list(df.columns),
-            "data": df.head(rows).to_dict(orient="records"),
-        }
+        return format_data(df_or_dict, rows)
