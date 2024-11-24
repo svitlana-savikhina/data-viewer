@@ -18,7 +18,7 @@ def extract_archive(archive_path, extract_to):
     if not zipfile.is_zipfile(archive_path):
         raise HTTPException(
             status_code=400,
-            detail=f"The file {archive_path} is not a valid ZIP archive"
+            detail=f"The file {archive_path} is not a valid ZIP archive",
         )
     with zipfile.ZipFile(archive_path, "r") as z:
         z.extractall(extract_to)
