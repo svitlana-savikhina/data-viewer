@@ -26,7 +26,7 @@ def load_table(file_name, sheet_name=None):
     if file_name.endswith(".csv"):
         return pd.read_csv(file_path)
 
-    elif file_name.endswith(".xlsx"):
+    if file_name.endswith(".xlsx"):
         excel_file = pd.ExcelFile(file_path)
         if not sheet_name:
             sheet_name = excel_file.sheet_names[0]
@@ -36,20 +36,30 @@ def load_table(file_name, sheet_name=None):
             )
         df = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
         if df is None or df.empty:
-            HTTPException(
+            raise HTTPException(
                 status_code=400,
                 detail=f"Sheet '{sheet_name}' is empty or could not be loaded",
             )
         return df
 
-    elif file_name.endswith(".sas7bdat"):
+    if file_name.endswith(".sas7bdat"):
         return pd.read_sas(file_path)
 
-    elif file_name.endswith(".xpt"):
-        return pd.read_sas(file_path, format="xport")
+    if file_name.endswith(".xpt"):
+        try:
+            return pd.read_sas(file_path, format="xport")
+        except ValueError as e:
+            try:
+                new_file_path = file_path.replace(".xpt", ".cpt")
+                return pd.read_sas(new_file_path, format="cpt")
+            except Exception as e:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Error reading .xpt or .cpt file: {str(e)}. The file may be corrupted or not in the "
+                    f"expected SAS format.",
+                )
 
-    else:
-        raise HTTPException(status_code=400, detail="Unsupported file format")
+    raise HTTPException(status_code=400, detail="Unsupported file format")
 
 
 def sanitize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
