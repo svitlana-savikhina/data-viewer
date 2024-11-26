@@ -23,6 +23,7 @@ def list_sheets(file_name):
 def load_table(file_name, sheet_name=None):
     file_path = find_file(file_name)
 
+    # Working with CSV
     if file_name.endswith(".csv"):
         with open(file_path, "r", encoding="utf-8") as f:
             first_line = f.readline()
@@ -31,25 +32,36 @@ def load_table(file_name, sheet_name=None):
             else:
                 return pd.read_csv(file_path, encoding="utf-8")
 
-    if file_name.endswith(".xlsx"):
+    # Working with Excel
+    if file_name.endswith((".xls", ".xlsx")):
         excel_file = pd.ExcelFile(file_path)
+
+        # If sheet_name is not provided, use the first sheet by default.
         if not sheet_name:
             sheet_name = excel_file.sheet_names[0]
+
         if sheet_name not in excel_file.sheet_names:
             raise HTTPException(
                 status_code=400, detail=f"Sheet '{sheet_name}' not found in {file_name}"
             )
-        df = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
-        if df is None or df.empty:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Sheet '{sheet_name}' is empty or could not be loaded",
-            )
+
+        df = pd.read_excel(file_path, sheet_name=sheet_name, header=0)
+
+        # If the table is empty, create a structure with empty values for all columns.
+        if df.empty:
+            columns = pd.read_excel(
+                file_path, sheet_name=sheet_name, header=0
+            ).columns.tolist()
+            empty_row = {col: "" for col in columns}
+            return {"data": [empty_row]}
+
         return df
 
+    # Working with SAS
     if file_name.endswith(".sas7bdat"):
         return pd.read_sas(file_path)
 
+    # Working with XPT
     if file_name.endswith(".xpt"):
         try:
             return pd.read_sas(file_path, format="xport")
@@ -68,8 +80,9 @@ def load_table(file_name, sheet_name=None):
 
 
 def sanitize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.replace([np.inf, -np.inf], None)
-    df = df.fillna(value="")
+    if isinstance(df, pd.DataFrame):
+        df = df.replace([np.inf, -np.inf], None)
+        df = df.fillna(value="")
     return df
 
 
@@ -94,8 +107,6 @@ def preview_file(file_name: str, rows: int = 10, sheet_name=None):
         )
 
     if isinstance(df_or_dict, dict):
-        return {
-            "sheets": {sheet: format_data(df, rows) for sheet, df in df_or_dict.items()}
-        }
+        return df_or_dict
     else:
         return format_data(df_or_dict, rows)
