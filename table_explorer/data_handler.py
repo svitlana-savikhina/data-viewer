@@ -24,7 +24,12 @@ def load_table(file_name, sheet_name=None):
     file_path = find_file(file_name)
 
     if file_name.endswith(".csv"):
-        return pd.read_csv(file_path)
+        with open(file_path, "r", encoding="utf-8") as f:
+            first_line = f.readline()
+            if "$" in first_line:
+                return pd.read_csv(file_path, sep="$", encoding="utf-8")
+            else:
+                return pd.read_csv(file_path, encoding="utf-8")
 
     if file_name.endswith(".xlsx"):
         excel_file = pd.ExcelFile(file_path)
@@ -74,7 +79,6 @@ def format_data(df, rows, file_name=None):
     else:
         df = pd.DataFrame(df)
     return {
-        "columns": list(df.columns),
         "data": df.head(rows).to_dict(orient="records"),
     }
 
