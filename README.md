@@ -25,4 +25,4 @@ uvicorn main:app --reload
 ```
 This will start the FastAPI server and make the application available at http://127.0.0.1:8000.
 
-Automatic API documentation generation for http://127.0.0.1:8000/docs
+Automatic API documentation generation at http://127.0.0.1:8000/docs
