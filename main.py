@@ -1,9 +1,7 @@
 from fastapi import FastAPI, UploadFile, File
 
-from table_explorer.data_handler import (
-    preview_file,
-    list_sheets,
-)
+from table_explorer.convert_TLF_Shells import split_tlf_shells
+from table_explorer.data_handler import list_sheets, preview_file
 from table_explorer.file_handler import handle_archive, list_files
 
 app = FastAPI()
@@ -31,4 +29,7 @@ def get_sheets(file_name: str):
 
 @app.get("/data/{file_name}", description="Preview the contents of a file.")
 def preview_data(file_name: str, rows: int = 10, sheet_name=None):
+    if file_name == "ADAM_spec.xlsx" and sheet_name == "_TLF_Shells":
+        return split_tlf_shells(file_name)
     return preview_file(file_name, rows, sheet_name)
+
